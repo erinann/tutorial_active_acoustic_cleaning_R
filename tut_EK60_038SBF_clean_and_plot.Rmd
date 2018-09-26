@@ -46,7 +46,7 @@ In Part 1, we will read in the bathymetric point data collected from the echosou
 In Part 2, we will read in the acoustic data exported from Echoview, remove missing or bad positional (longitude and latitude) points, filter the data to get the depth layer we are interested in examining, and plot the mean S~v~ in relation to the bathymetry and distance along the trackline. 
 
 
-In Part 3, we find the shelf break and reorient all the data to shelf break = 0 meters, and re-grid the data into equidistant spacing. Distances heading onshore will be negative. Distances heading offshore will be positive.
+In Part 3, we will find the shelf break and reorient all the data to shelf break = 0 meters, and re-grid the data into equidistant spacing. Distances heading onshore will be negative. Distances heading offshore will be positive.
 
 
 <br>  
@@ -61,7 +61,7 @@ library(geosphere)
 ```
 <br>
 
-The full data set for this research cruise consists of 52 S~v~ files (each transect has a fish-like scattering file and a zooplankton-like scattering file), and 26 files of bathymetry data. The workflow is the same for each file, but files are named by date, transect line, and frequency of the transducer. Instead of changing the file name every time a data file is read in let's create variables that represent the date (dt) and transect line (line). In Part 2 we will also create a variable that defines the frequency we are examining. To save us the headache of running each file separately, we could also loop through a list of the files in the directory, but we're only working with one S~v~ file and one bathymetry file today, so we'll keep it simple.  
+The full data set for this research cruise consists of 52 S~v~ files (each transect has a fish-like scattering file and a zooplankton-like scattering file), and 26 files of bathymetry data. The workflow is the same for each file, but files are named by date, transect line, and frequency of the transducer (echosounder). Instead of changing the file name every time a data file is read in, let's create variables that represent the date (dt) and transect line (line). In Part 2 we will also create a variable that defines the frequency we are examining. To save us the headache of running each file separately, we could also loop through a list of the files in the directory, but we're only working with one S~v~ file and one bathymetry file today, so we'll keep it simple.  
 <br>
 
 Read in the bathymetry point data and take a glimpse.
@@ -85,7 +85,7 @@ plot(bot$Longitude, bot$Latitude)
 
 Don't worry about the little jaunt out and back off the trackline. Sometimes the ship needs to move off the trackline to avoid fishing gear or to identify and count species of interest at the surface.  
 <br>
-Now that we have clean positional data, let's create a datetime column (DT), and columns that contain the calculated distance between each consecutive point in meters (dist), the cumulative distance traveled at each point in meters (dstlng), the time difference between each point in seconds (t_diff), and the speed of the ship in meters per second (m_per_sec). We will calculate the distance between points using the `distHaversine()` from the `geosphere` package. `distHaversine()` calculates the shortest distance between points on the earth using the 'Haversine method'. This method ignores ellipsoidal effects and assumes a spherical earth and is reasonable for our calculations.
+Now that we have clean positional data, let's create a datetime column (DT), and columns that contain the calculated distance between each consecutive point in meters (dist), the cumulative distance traveled at each point in meters (dstlng), the time difference between each point in seconds (t_diff), and the speed of the ship in meters per second (m_per_sec). We will calculate the distance between points using `distHaversine()` from the `geosphere` package. `distHaversine()` calculates the shortest distance between points on the earth using the 'Haversine method'. This method ignores ellipsoidal effects and assumes a spherical earth and is reasonable for our calculations.
 
 ```{r}
 bot <- bot %>% 
@@ -100,7 +100,7 @@ bot <- bot %>%
 
 glimpse(bot)
 ```
-You might have noticed that we dropped the GPS-time column, `GPS_UTC_time`, and created a new datetime column from `Ping_date` and `Ping_time`. Why the extra work? Well, sometimes people forget to make sure the computer's clock is synced to the ship's GPS system. `Ping_date` and `Ping_time` came from the clock on the computer that recorded the data. `GPS_UTC_time` came from the [NEMA](https://en.wikipedia.org/wiki/NMEA_2000_) stream sent from the GPS unit. To be consistent with the S~v~ data, which was time stamped from the computer's clock, we created a new time stamp from the computer's clock. Now you're probably wondering why Echoview would use the computer's clock instead of the satellite-linked GPS clock. You'll have to ask the software engineers at Echoview about that, but it's probably because some platforms cannot get a GPS signal (e.g. bottom mounted systems, autonomous systems), but the data still need a time stamp.
+You might have noticed that we dropped the GPS-time column, `GPS_UTC_time`, and created a new datetime column from `Ping_date` and `Ping_time`. Why the extra work? Well, sometimes people forget to make sure the computer's clock is synced to the ship's GPS system. `Ping_date` and `Ping_time` came from the clock on the computer that recorded the data. `GPS_UTC_time` came from the [NMEA](https://en.wikipedia.org/wiki/NMEA_2000_) stream sent from the GPS unit. To be consistent with the S~v~ data (computer's clock), we created a new time stamp for the bathymetry data from the computer's clock. Now you're probably wondering why Echoview would use the computer's clock instead of the satellite-linked GPS clock. You'll have to ask the software engineers at Echoview about that, but it's probably because some platforms cannot get a GPS signal (e.g. bottom mounted systems, autonomous systems), but the data still need a time stamp.
 
 Always remember to sync your computer's clock to the ship's GPS! 
 
@@ -168,7 +168,7 @@ dta_250_sb <- read_csv(paste0(dt, "_", line, "_", frq1, "_", hr_res, "_full.csv"
 
 <br>
 
-For data files with many variables that are not too large, it's my personal preference to keep a copy of the raw data file in the environment. Although we're not looping through the data files in the directory, renaming the S~v~ file here makes running through the loop easier.
+For data files with many variables that are not too large, it's my personal preference to keep a copy of the original data file in the environment. Although we're not looping through the data files in the directory, renaming the S~v~ file here makes running through the loop easier.
 ```{r}
 sv_sbf <- dta_250_sb
 
@@ -177,9 +177,9 @@ glimpse(sv_sbf)
 
 Woah! 728 observations of 83 variables! What is all this??? This is the full data export from Echoview, but remember, we're only interested in the S~v~ data (Sv_mean). What will we need to combine the S~v~ data with the bathymetry data and examine it? My explanation of why we're using the computer's time stamp in Part 1 should have given you a big hint that we'll need the time and date columns. We'll also need the latitude and longitude columns, and the Interval and the Layer columns.  
 
-If you would like to explore the other variables in the data file, Echoview's help files have a section with all the definitions of exported variables. To save you the time of pursuing through the help files, here's the information on the few variables we need. Interval is the horizontal grid number and Layer is the vertical grid number. These backscatter data were integrated (averaged) into grid cells that are 200 meters along the ship's path by 250 meters deep. Layer 1 is the data integrated from the near surface to 250 meters depth. Layer 2 is the data integrated from 250.1 meters to 500 meters depth, and so on. Interval 1 is the first 200 meter grid cell and Interval 2 is the second 200 meter grid cell. As you can imagine, Interval and Layer are used as a type of coordinate system referenced to the ship's path and depth. For this exercise, we are only interested in the first depth layer and will be removing all the other layers.  
+If you would like to explore the other variables in the data file, Echoview's help files provide definitions of all the exported variables. To save you the time of pursuing through the help files, here's the information on the few variables we need. Interval is the horizontal grid number and Layer is the vertical grid number. These backscatter data were integrated (averaged) into grid cells that are 200 meters along the ship's path by 250 meters deep. Layer 1 is the data integrated from the near surface to 250 meters depth. Layer 2 is the data integrated from 250.1 meters to 500 meters depth, and so on. Interval 1 is the first 200 meter grid cell and Interval 2 is the second 200 meter grid cell. As you can imagine, Interval and Layer are used as a type of coordinate system referenced to the ship's path and depth. For this exercise, we are only interested in the first depth layer and will be removing all the other layers.  
 
-There are three date, time, latitude, and longitude columns. Each one is for the start of the grid cell, "x_S", the middle of the grid cell, "x_M", and the end of the grid cell, "_E". 
+There are three date, time, latitude, and longitude columns. The suffix represents the order. For example, the suffix "_S" is for the start of the grid cell, "_M" is for the middle of the grid cell, and "_E" is for the end of the grid cell. 
 
 But first thing is first. We've got some bad positional data (999.000) in the latitude and longitude columns. Let's remove the bad grid cells and make a quick plot using the grid midpoints to make sure there are no stray bad data points.
 
@@ -285,7 +285,7 @@ grid.arrange(Sv_mean, bthy)
 Almost to the final plot! We have loaded, cleaned, and plotted the bathymetry data, and loaded, cleaned, and plotted backscatter data representative of fish with swim bladders. Now we are going to find the shelf break and reorient and re-grid all the data to the shelf break. Why? Because the shelf break is a static feature in this area that influences the productivity in the region. Understanding what is happening at distances to and from this position can help us understand the mechanisms that drive species distributions in this region. And also, these little exercises are part of a much larger course of research in this area that require us to do this step.  
 
 
-How do we find the shelf break? Thankfully, many oceanographers have already described the shelf break for us. The area of steepest slope is approximately at 200 meters depth. We will find the closest bathymetric data point to 200 m and get its index. Then we will use the index number to find the distance along the trackline needed to subtract from the shelf break to make that position 0 meters. Although we are only looking at one transect, the ship made several shelf break crossings, some starting from the shelf, some starting from offshore. Because we are assigning direction to 'onshore' and 'offshore' distances from the shelf break, we need to flip the sign of the distance from the shelf break when starting from offshore (bathymetry greater than 600 m).   
+How do we find the shelf break? Thankfully, many oceanographers have already described the shelf break for us. The area of steepest slope is approximately at 200 meters depth. We will find the closest bathymetric data point to 200 m and get its index. Then we will use the index number to find the distance along the trackline needed to reorient the shelf break to 0 meters along the trackline. Although we are only looking at one transect, the ship made several shelf break crossings, some starting from the shelf, some starting from offshore. Because we are assigning direction to 'onshore' and 'offshore' distances from the shelf break, we need to flip the sign of the distance from the shelf break when starting from offshore (bathymetry greater than 600 m).   
 ```{r}
 sb <-  200
 sb_idx <- which(abs(dta_sbf$dpth_mean - sb) == min(abs(dta_sbf$dpth_mean - sb)))
@@ -308,7 +308,7 @@ ggplot(dta_sbf, aes(dst_alng_fn, dpth_mean)) +
 Now that we have found the shelf break and reoriented the bathymetry data, we need to re-grid the spacing. Remember that little jaunt off the trackline? All of our distances along the trackline have been slightly skewed because we calculated the distance along the trackline from consecutive position points. To correct this and to make sure the data are equally spaced along the trackline orientated to the shelf break, we are going to split the data into two sections and interpolate onto an equidistant vector. 
 
 <br>
-But before we do that, we need to remember some high school math - logs! Decibels are the logarithmic version of the data. Logs have to be converted to the arithmetic form for interpolation.
+But before we do that, we need to remember some high school math - logs! Decibels are the logarithmic version of the backscatter. Logs have to be converted to the arithmetic form for interpolation.
 ```{r}
 dta_sbf <- dta_sbf %>%
   mutate(sv_ar = 10^(Sv_mean/10))
