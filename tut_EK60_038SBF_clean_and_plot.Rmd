@@ -2,7 +2,9 @@
 title: "Cleaning and Plotting EK60 Data"
 author: "Erin A. LaBrecque"
 date: "September 26, 2018"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -18,7 +20,7 @@ For many scientists who study the marine environment, especially biological ocea
 Since World War II, the use of echosounders has allowed scientists to locate and visualize the distributions, abundance, and behavior of fish and zooplankton. Unlike passive acoustic technologies which only listen and record sound, echosounders produce sound signals (pings) at specific frequencies and durations that are transmitted into the ocean. When these signals encounter something with a different density than the surrounding water, sound is reflected back in the direction it came from. Thus, "backscatter". Backscatter is recorded by the echosounder and useful parameters are calculated from the received signal including the position of the source of the scattering ("where"?) and the intensity of the backscatter in decibels (dB) ("who/what"?). Active acoustic technologies are a unique remote sensing tool that samples aquatic environments at fine temporal and spatial scales and allow scientists to take acoustic "snap-shots" of a 3-dimensional environment.
 
 In this exercise, we are going to load, clean, and plot bathymetric data (depth of the seafloor) to examine the shelf break, and the mean volumetric backscatter (S~v~, dB re 1 m) along a transect in the Mid-Atlantic Bight area of the North Atlantic Ocean. 
-```{r fig.width=6, fig.height=6, echo=FALSE}
+```{r fig.align="center", fig.width = 5, fig.height = 5, echo=FALSE}
 library(png)
 library(grid)
 img <- readPNG("map.png")
