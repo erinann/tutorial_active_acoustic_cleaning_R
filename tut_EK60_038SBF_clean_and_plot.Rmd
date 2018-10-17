@@ -324,7 +324,9 @@ trk_sh <- dta_sbf %>%
   filter(dst_alng_fn <= 0) %>% 
   arrange(desc(dst_alng_fn)) #These are negative distances.
 
-trk_pts_sh <- as.tibble(seq(floor(trk_sh$dst_alng_fn[1]), ceiling(trk_sh$dst_alng_fn[nrow(trk_sh)]), by = as.integer(hr_res) * -1)) %>% 
+trk_pts_sh <- as.tibble(seq(floor(trk_sh$dst_alng_fn[1]), 
+                            ceiling(trk_sh$dst_alng_fn[nrow(trk_sh)]), 
+                            by = as.integer(hr_res) * -1)) %>% 
   rename(dst_alng_fn = value) %>% 
   arrange(dst_alng_fn) 
 ```
@@ -337,7 +339,9 @@ trk_os <- dta_sbf %>%
   filter(dst_alng_fn >= 0) %>% 
   arrange(dst_alng_fn) #These are positive distances.
 
-trk_pts_os <- as.tibble(seq(floor(trk_os$dst_alng_fn[1]), ceiling(trk_os$dst_alng_fn[nrow(trk_os)]), by = as.integer(hr_res))) %>% 
+trk_pts_os <- as.tibble(seq(floor(trk_os$dst_alng_fn[1]), 
+                            ceiling(trk_os$dst_alng_fn[nrow(trk_os)]), 
+                            by = as.integer(hr_res))) %>% 
   rename(dst_alng_fn = value)
 ```
 <br>  
@@ -386,8 +390,8 @@ aprxDat_dp <- aprxDat_dp %>%
 
 Let's put it all back together now and plot it out.
 ```{r}
-sbf_dta_plt <- tibble(Dist = aprxDat_sb$Dist, SBF = aprxDat_sb$Sv_mean, sbf_ar = aprxDat_sb$sv_ar,
-                    dpth_intr = aprxDat_dp$dpth_intr)
+sbf_dta_plt <- tibble(Dist = aprxDat_sb$Dist, SBF = aprxDat_sb$Sv_mean, 
+                      sbf_ar = aprxDat_sb$sv_ar, dpth_intr = aprxDat_dp$dpth_intr)
 
 
 bthy <- ggplot(sbf_dta_plt, aes(Dist, dpth_intr)) +
