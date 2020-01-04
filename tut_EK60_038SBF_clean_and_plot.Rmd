@@ -1,9 +1,9 @@
 ---
 title: "Cleaning and Plotting EK60 Data"
 author: "Erin A. LaBrecque"
-date: "September 26, 2018"
+date: "January 3, 2020"
 output:
-  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -70,7 +70,8 @@ Read in the bathymetry point data and take a glimpse.
 dt <- '0616'
 line <- '21_D_SB'
 
-bot <- read_csv(paste0("data/",dt, "_", line, "_bottom.line.csv"))
+bot <- read_csv(paste0("data/",dt, "_", line, "_bottom.line.csv"), 
+                       col_types = cols(Ping_date = col_datetime(format = "%m/%d/%Y")))
 glimpse(bot)
 ```
 <br>
@@ -91,7 +92,7 @@ Now that we have clean positional data, let's create a datetime column (DT), and
 ```{r}
 bot <- bot %>% 
   select(Ping_date, Ping_time, Latitude, Longitude, Depth) %>%
-  mutate(DT = ymd_hms(paste(Ping_date, Ping_time)),
+  mutate(DT = Ping_date + Ping_time,
          dist = c(0,
                      distHaversine(cbind(Longitude[-n()], Latitude[-n()]),      
                                    cbind(Longitude[  -1], Latitude[  -1]))),
@@ -158,13 +159,14 @@ bot %>%
 <br>
 First thing we need to do in Part 2 is load `gridExtra` for plots later in this section, and then load the S~v~ data. If you remember from the General Methods section, there are two types of S~v~ files: one for fish-like backscatter (38 kHz) and one for zooplankton-like backscatter (120 kHz). To load the fish-like backscatter file we need to give the file name the correct frequency (frq1) and specify the horizontal resolution (hr_res). 
 ```{r message=FALSE}
-library(gridExtra)
+library(patchwork)
 ```
 ```{r}
 frq1 <- '038_lgSBF'
 hr_res <- '200'
 
-dta_250_sb <- read_csv(paste0("data/",dt, "_", line, "_", frq1, "_", hr_res, "_full.csv"))
+dta_250_sb <- read_csv(paste0("data/",dt, "_", line, "_", frq1, "_", hr_res, "_full.csv"),
+                       col_types = cols(Date_M = col_datetime(format = "%Y%m%d")))
 ```
 
 <br>
@@ -202,9 +204,9 @@ sv_sbf <- sv_sbf %>%
   select(Interval, Layer, Sv_mean, Frequency, Depth_mean, Ping_S, Ping_M, Ping_E, Date_M, Time_S, Time_M, Time_E, Lat_S, Lat_M, Lat_E, Lon_S, Lon_M, Lon_E) %>%
   rename(int_along = Interval) %>%
   filter(Layer == 1)  %>%
-  mutate(DT_S = ymd_hms(paste(ymd(Date_M), Time_S)),
-         DT_M = ymd_hms(paste(ymd(Date_M), Time_M)),
-         DT_E = ymd_hms(paste(ymd(Date_M), Time_E))) %>%
+  mutate(DT_S = Date_M + Time_S,
+         DT_M = Date_M + Time_M,
+         DT_E = Date_M + Time_E) %>%
   filter(Layer == 1)  %>%
   arrange(DT_S) %>%
   mutate(dist_M = c(0, distHaversine(cbind(Lon_M[-n()], Lat_M[-n()]),       
@@ -231,7 +233,8 @@ ff <- function(x){
 Now we'll create a new column in `bot` called `int_along_b` that will be the Interval value (int_along) from `sv_sbf` based on the time stamp from `bot` being in a time interval in `sv_sbf`. 
 
 ```{r}
-bot$int_along_b <- plyr::ldply(bot$DT, ff)$V1
+bot <- bot %>% 
+  mutate(int_along_b = map_dbl(DT, ff))
 glimpse(bot)
 ```
 <br>
@@ -271,7 +274,7 @@ Sv_mean <- ggplot(dta_sbf, aes(dstlng, Sv_mean)) +
   theme(legend.position="none") +
   labs(y=expression(mean~vol~backscatter~S[v]~(dB)))   
 
-grid.arrange(Sv_mean, bthy)
+Sv_mean + bthy
 ```
 
 * How does the mean fish-with-swim-bladder-like backscatter change along the trackline?  
@@ -405,7 +408,7 @@ Sv_mean <- ggplot(sbf_dta_plt, aes(Dist, SBF)) +
   labs(y=expression(mean~vol~backscatter~S[v]~(dB))) +
   theme(axis.title.x=element_blank())
 
-grid.arrange(Sv_mean, bthy)
+Sv_mean / bthy
 
 ```
 <br>
