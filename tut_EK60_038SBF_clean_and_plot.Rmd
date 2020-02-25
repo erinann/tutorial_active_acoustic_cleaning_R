@@ -2,8 +2,7 @@
 title: "Cleaning and Plotting EK60 Data"
 author: "Erin A. LaBrecque"
 date: "January 3, 2020"
-output:
-  pdf_document: default
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
